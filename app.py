@@ -21,11 +21,16 @@ if not st.session_state.logged_in:
         def check_password():
             if st.session_state.password_input == "7620":
                 st.session_state.logged_in = True
-            elif st.session_state.password_input != "":
-                st.error("❌ 비밀번호가 틀렸습니다.")
         
         password = st.text_input("🔑 비밀번호", type="password", placeholder="비밀번호 입력", 
                                  on_change=check_password, key="password_input")
+        
+        if st.button("로그인", use_container_width=True):
+            if password == "7620":
+                st.session_state.logged_in = True
+                st.rerun()
+            else:
+                st.error("❌ 비밀번호가 틀렸습니다.")
     st.stop()
 
 # ===== Google Sheets 연결 =====
