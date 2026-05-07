@@ -506,7 +506,11 @@ with tab4:
             
             if not recall_df.empty:
                 recall_count = len(recall_df)
-                st.markdown(f"### 🔴 리콜 필요 ({recall_count}명)")
+                
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"### 🔴 리콜 필요 ({recall_count}명)")
+                
                 st.divider()
                 
                 # 최신순으로 정렬
@@ -514,36 +518,107 @@ with tab4:
                 
                 # 상담 기록 표시
                 for idx, row in recall_df.iterrows():
-                    with st.expander(f"👤 {row['상담자']} | 차트: {row['차트번호']} | {row['경과일']}일 경과 | {int(float(row['금액'])) if pd.notnull(row['금액']) else 0:,}원 | 미확정", expanded=True):
-                        # 첫 번째 행: 환자명 / 분류 / 진단원장 / 날짜
-                        col1, col2, col3, col4 = st.columns(4)
-                        with col1:
-                            st.write(f"**환자명:** {row['환자성함']}")
-                        with col2:
-                            st.write(f"**분류:** {row['분류']}")
-                        with col3:
-                            st.write(f"**진단원장:** {row['진단원장']}")
-                        with col4:
-                            st.write(f"**상담일:** {row['날짜'].strftime('%Y-%m-%d')}")
-                        
-                        # 두 번째 행: 금액 / 주요포인트
-                        col1, col2 = st.columns(2)
-                        with col1:
+                    # 헤더: 환자명 / 차트 / 경과일 / 상담금액 / 확정여부 / 상담자
+                    col1, col2, col3, col4, col5, col6, col7 = st.columns([1.5, 1, 1, 1.2, 1, 1, 0.8])
+                    with col1:
+                        st.write(f"**{row['환자성함']}**")
+                    with col2:
+                        st.write(f"{row['차트번호']}")
+                    with col3:
+                        st.write(f"**{row['경과일']}일**")
+                    with col4:
+                        try:
+                            amount = int(float(row['금액']))
+                            st.write(f"{amount:,}원")
+                        except:
+                            st.write(f"{row['금액']}")
+                    with col5:
+                        st.write("미확정")
+                    with col6:
+                        st.write(f"{row['상담자']}")
+                    with col7:
+                        if st.button("✅ 리콜완료", key=f"recall_{idx}"):
+                            st.session_state[f"recall_confirm_{idx}"] = True
+                    
+                    # 리콜 완료 확인
+                    if st.session_state.get(f"recall_confirm_{idx}", False):
+                        if st.confirm_dialog(f"{row['환자성함']} (차트: {row['차트번호']})의 리콜을 완료하시겠습니까?"):
+                            # Google Sheets에 리콜상태 업데이트
                             try:
-                                amount = int(float(row['금액']))
-                                st.write(f"**금액:** {amount:,}원")
-                            except:
-                                st.write(f"**금액:** {row['금액']}")
-                        with col2:
-                            st.write(f"**주요포인트:** {row['주요포인트']}")
-                        
-                        # 세 번째 행: 상담내용
-                        st.write("---")
-                        st.write(f"**상담내용:**\n\n{row['상담내용']}")
+                                worksheet = get_worksheet()
+                                if worksheet:
+                                    # 모든 데이터 가져오기
+                                    data = worksheet.get_all_records()
+                                    
+                                    # 해당 행 찾기
+                                    for i, record in enumerate(data):
+                                        if (record.get('환자성함') == row['환자성함'] and 
+                                            record.get('차트번호') == row['차트번호'] and
+                                            record.get('날짜') == row['날짜'].strftime('%Y-%m-%d')):
+                                            # 리콜상태 업데이트
+                                            worksheet.update_cell(i + 2, 11, "리콜완료")
+                                            st.session_state[f"recall_confirm_{idx}"] = False
+                                            st.success(f"✅ {row['환자성함']}의 리콜이 완료되었습니다!")
+                                            st.rerun()
+                                            break
+                            except Exception as e:
+                                st.error(f"🚨 리콜 완료 중 에러: {str(e)}")
+                    
+                    # 주요포인트 / 상담내용
+                    st.write(f"**주요포인트:** {row['주요포인트']}")
+                    st.write(f"**상담내용:** {row['상담내용']}")
+                    st.divider()
             else:
                 st.success("✅ 리콜이 필요한 환자가 없습니다!")
         else:
             st.info("📭 미확정 상담 기록이 없습니다.")
+        
+        # ===== 리콜 완료 목록 =====
+        st.markdown("---")
+        st.subheader("✅ 리콜 완료 목록")
+        
+        # 리콜 완료된 것만 필터링 (리콜상태가 '리콜완료'인 것)
+        recall_completed_df = df[(df['리콜상태'] == '리콜완료')].copy()
+        
+        # 상담자 필터링
+        if reminder_consultant != "전체":
+            recall_completed_df = recall_completed_df[recall_completed_df['상담자'] == reminder_consultant]
+        
+        if not recall_completed_df.empty:
+            completed_count = len(recall_completed_df)
+            st.info(f"🎉 {completed_count}명의 리콜이 완료되었습니다.")
+            
+            # 역순으로 정렬
+            recall_completed_df = recall_completed_df.sort_values('날짜', ascending=False)
+            
+            # 완료된 상담 기록 표시
+            for idx, row in recall_completed_df.iterrows():
+                with st.expander(f"✅ {row['환자성함']} | 차트: {row['차트번호']} | {row['상담자']} | 완료"):
+                    # 정보 표시
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.write(f"**환자명:** {row['환자성함']}")
+                    with col2:
+                        st.write(f"**분류:** {row['분류']}")
+                    with col3:
+                        st.write(f"**진단원장:** {row['진단원장']}")
+                    with col4:
+                        st.write(f"**상담일:** {row['날짜'].strftime('%Y-%m-%d')}")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        try:
+                            amount = int(float(row['금액']))
+                            st.write(f"**금액:** {amount:,}원")
+                        except:
+                            st.write(f"**금액:** {row['금액']}")
+                    with col2:
+                        st.write(f"**주요포인트:** {row['주요포인트']}")
+                    
+                    st.write("---")
+                    st.write(f"**상담내용:** {row['상담내용']}")
+        else:
+            st.info("📭 리콜 완료 기록이 없습니다.")
     else:
         st.info("📭 저장된 상담 기록이 없습니다.")
 
