@@ -48,45 +48,41 @@ def filter_by_date_range(df, start_date, end_date):
     return df[(df['날짜'] >= start_str) & (df['날짜'] <= end_str)].copy()
 
 def load_gsheet_data():
-    """Google Sheet에서 데이터 로드 (gspread 사용)"""
-    try:
-        credentials = st.secrets["connections"]["gsheets"]
-        scopes = ["https://www.googleapis.com/auth/spreadsheets",
-                  "https://www.googleapis.com/auth/drive"]
-        creds = Credentials.from_service_account_info(credentials, scopes=scopes)
-        client = gspread.authorize(creds)
-        
-        spreadsheet_id = credentials["spreadsheet"]
-        spreadsheet = client.open_by_key(spreadsheet_id)
-        worksheet = spreadsheet.worksheet("상담일지")
-        
+    """Google Sheet에서 데이터 로드 (캐싱)"""
+    # Session state 사용 (매번 새로 로드하지 않음)
+    if "df_cache" not in st.session_state:
         try:
+            credentials = st.secrets["connections"]["gsheets"]
+            scopes = ["https://www.googleapis.com/auth/spreadsheets",
+                      "https://www.googleapis.com/auth/drive"]
+            creds = Credentials.from_service_account_info(credentials, scopes=scopes)
+            client = gspread.authorize(creds)
+            
+            spreadsheet_id = credentials["spreadsheet"]
+            spreadsheet = client.open_by_key(spreadsheet_id)
+            worksheet = spreadsheet.worksheet("상담일지")
+            
             data = worksheet.get_all_records()
             if not data:
-                return pd.DataFrame()
-            
-            df = pd.DataFrame(data)
-            
-            # 빈 행 제거
-            df = df.dropna(how='all')
-            
-            # 필수 컬럼 추가
-            if '진단원장' not in df.columns:
-                df['진단원장'] = ''
-            if '리콜상태' not in df.columns:
-                df['리콜상태'] = '미리콜'
-            
-            return df
+                st.session_state.df_cache = pd.DataFrame()
+            else:
+                df = pd.DataFrame(data)
+                df = df.dropna(how='all')
+                
+                if '진단원장' not in df.columns:
+                    df['진단원장'] = ''
+                if '리콜상태' not in df.columns:
+                    df['리콜상태'] = '미리콜'
+                
+                st.session_state.df_cache = df
+                
         except Exception as e:
-            st.warning(f"⚠️ 데이터 처리 중 오류: {str(e)}")
-            return pd.DataFrame()
-            
-    except Exception as e:
-        st.warning("⚠️ Google Sheets 연결 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
-        return pd.DataFrame()
+            st.session_state.df_cache = pd.DataFrame()
+    
+    return st.session_state.df_cache
 
 def save_to_gsheet(df, columns_to_save):
-    """Google Sheet에 데이터 저장"""
+    """Google Sheet에 데이터 저장 (안전한 append 방식)"""
     try:
         credentials = st.secrets["connections"]["gsheets"]
         scopes = ["https://www.googleapis.com/auth/spreadsheets",
@@ -98,21 +94,26 @@ def save_to_gsheet(df, columns_to_save):
         spreadsheet = client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet("상담일지")
         
-        # 시트 크기 조정
-        total_rows = len(df) + 1
-        worksheet.resize(rows=total_rows + 10)
+        # 기존 데이터 가져오기
+        existing_data = worksheet.get_all_values()
         
-        # 모든 셀 지우기
-        worksheet.clear()
+        # 헤더가 없으면 추가
+        if not existing_data:
+            headers = df[columns_to_save].columns.tolist()
+            worksheet.append_row(headers)
         
-        # 헤더 추가
-        headers = df[columns_to_save].columns.tolist()
-        worksheet.append_row(headers)
+        # 새로운 데이터만 추가 (마지막 행 이후부터)
+        last_row = len(existing_data)
         
-        # 데이터 추가
-        data_values = df[columns_to_save].values.tolist()
-        if data_values:
-            worksheet.append_rows(data_values)
+        # 추가할 데이터
+        new_data = df[columns_to_save].iloc[last_row-1:].values.tolist() if last_row > 1 else df[columns_to_save].values.tolist()
+        
+        if new_data:
+            for row in new_data:
+                worksheet.append_row(row)
+        
+        # 캐시 업데이트
+        st.session_state.df_cache = df
         
         return True
     except Exception as e:
