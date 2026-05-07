@@ -519,48 +519,48 @@ with tab4:
                 # 상담 기록 표시
                 for idx, row in recall_df.iterrows():
                     # expander 제목에 간단한 정보
-                    col1, col2 = st.columns([20, 1])
-                    with col1:
-                        with st.expander(f"👤 {row['환자성함']} | 차트: {row['차트번호']} | {row['경과일']}일 경과 | {int(float(row['금액'])) if pd.notnull(row['금액']) else 0:,}원 | 미확정 | {row['상담자']}", expanded=True):
-                            # 상세 내용
-                            st.write(f"**주요포인트:** {row['주요포인트']}")
-                            st.write(f"**상담내용:** {row['상담내용']}")
-                    
-                    with col2:
+                    with st.expander(f"👤 {row['환자성함']} | 차트: {row['차트번호']} | {row['경과일']}일 경과 | {int(float(row['금액'])) if pd.notnull(row['금액']) else 0:,}원 | 미확정 | {row['상담자']}", expanded=True):
+                        # 상세 내용
+                        st.write(f"**주요포인트:** {row['주요포인트']}")
+                        st.write(f"**상담내용:** {row['상담내용']}")
+                        
+                        st.divider()
+                        
+                        # 리콜 버튼
                         if st.button("✅ 리콜완료", key=f"recall_{idx}"):
                             st.session_state[f"recall_confirm_{idx}"] = True
-                    
-                    # 리콜 완료 확인
-                    if st.session_state.get(f"recall_confirm_{idx}", False):
-                        col1, col2, col3 = st.columns([2, 1, 1])
-                        with col1:
+                        
+                        # 리콜 완료 확인
+                        if st.session_state.get(f"recall_confirm_{idx}", False):
                             st.warning(f"❓ {row['환자성함']} (차트: {row['차트번호']})의 리콜을 완료하시겠습니까?")
-                        with col2:
-                            if st.button("✅ 확인", key=f"confirm_{idx}"):
-                                # Google Sheets에 리콜상태 업데이트
-                                try:
-                                    worksheet = get_worksheet()
-                                    if worksheet:
-                                        # 모든 데이터 가져오기
-                                        data = worksheet.get_all_records()
-                                        
-                                        # 해당 행 찾기
-                                        for i, record in enumerate(data):
-                                            if (record.get('환자성함') == row['환자성함'] and 
-                                                record.get('차트번호') == row['차트번호'] and
-                                                record.get('날짜') == row['날짜'].strftime('%Y-%m-%d')):
-                                                # 리콜상태 업데이트
-                                                worksheet.update_cell(i + 2, 11, "리콜완료")
-                                                st.session_state[f"recall_confirm_{idx}"] = False
-                                                st.success(f"✅ {row['환자성함']}의 리콜이 완료되었습니다!")
-                                                st.rerun()
-                                                break
-                                except Exception as e:
-                                    st.error(f"🚨 리콜 완료 중 에러: {str(e)}")
-                        with col3:
-                            if st.button("❌ 취소", key=f"cancel_{idx}"):
-                                st.session_state[f"recall_confirm_{idx}"] = False
-                                st.rerun()
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("✅ 확인", key=f"confirm_{idx}"):
+                                    # Google Sheets에 리콜상태 업데이트
+                                    try:
+                                        worksheet = get_worksheet()
+                                        if worksheet:
+                                            # 모든 데이터 가져오기
+                                            data = worksheet.get_all_records()
+                                            
+                                            # 해당 행 찾기
+                                            for i, record in enumerate(data):
+                                                if (record.get('환자성함') == row['환자성함'] and 
+                                                    record.get('차트번호') == row['차트번호'] and
+                                                    record.get('날짜') == row['날짜'].strftime('%Y-%m-%d')):
+                                                    # 리콜상태 업데이트
+                                                    worksheet.update_cell(i + 2, 11, "리콜완료")
+                                                    st.session_state[f"recall_confirm_{idx}"] = False
+                                                    st.success(f"✅ {row['환자성함']}의 리콜이 완료되었습니다!")
+                                                    st.rerun()
+                                                    break
+                                    except Exception as e:
+                                        st.error(f"🚨 리콜 완료 중 에러: {str(e)}")
+                            with col2:
+                                if st.button("❌ 취소", key=f"cancel_{idx}"):
+                                    st.session_state[f"recall_confirm_{idx}"] = False
+                                    st.rerun()
             else:
                 st.success("✅ 리콜이 필요한 환자가 없습니다!")
         else:
