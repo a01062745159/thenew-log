@@ -61,7 +61,7 @@ def load_all_data():
 st.title("📂 더뉴치과 상담일지")
 
 # 탭 생성
-tab1, tab2, tab3 = st.tabs(["📝 상담일지 작성", "🔍 상담일지 조회", "📊 상담 보고"])
+tab1, tab2, tab3, tab4 = st.tabs(["📝 상담일지 작성", "🔍 상담일지 조회", "📊 상담 보고", "📞 미확정 리마인더"])
 
 # ===== TAB 1: 상담일지 작성 =====
 with tab1:
@@ -470,6 +470,80 @@ with tab3:
                         st.write(f"**상담내용:**\n\n{row['상담내용']}")
         else:
             st.info(f"⚠️ 해당 기간에 상담 기록이 없습니다.")
+    else:
+        st.info("📭 저장된 상담 기록이 없습니다.")
+
+# ===== TAB 4: 미확정 리마인더 =====
+with tab4:
+    st.header("📞 미확정 리마인더")
+    
+    # 상담자 선택
+    col1, col2 = st.columns([2, 4])
+    with col1:
+        reminder_consultant = st.selectbox("👤 상담자 선택", ["전체", "우다혜", "전누리", "임예린"], key="tab4_consultant")
+    
+    # 데이터 로드
+    df = load_all_data()
+    
+    if not df.empty:
+        # 날짜 변환
+        df['날짜'] = pd.to_datetime(df['날짜'])
+        
+        # 미확정만 필터링
+        unconfirmed_df = df[df['상담결과'] == '미확정'].copy()
+        
+        # 상담자 필터링
+        if reminder_consultant != "전체":
+            unconfirmed_df = unconfirmed_df[unconfirmed_df['상담자'] == reminder_consultant]
+        
+        if not unconfirmed_df.empty:
+            # 경과일 계산
+            today = pd.to_datetime(datetime.now().date())
+            unconfirmed_df['경과일'] = (today - unconfirmed_df['날짜']).dt.days
+            
+            # 7일 이상 경과한 것만 필터링
+            recall_df = unconfirmed_df[unconfirmed_df['경과일'] >= 7].copy()
+            
+            if not recall_df.empty:
+                recall_count = len(recall_df)
+                st.markdown(f"### 🔴 리콜 필요 ({recall_count}명)")
+                st.divider()
+                
+                # 최신순으로 정렬
+                recall_df = recall_df.sort_values('날짜', ascending=False)
+                
+                # 상담 기록 표시
+                for idx, row in recall_df.iterrows():
+                    with st.expander(f"👤 {row['상담자']} | 차트: {row['차트번호']} | {row['경과일']}일 경과 | {int(float(row['금액'])) if pd.notnull(row['금액']) else 0:,}원 | 미확정", expanded=True):
+                        # 첫 번째 행: 환자명 / 분류 / 진단원장 / 날짜
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.write(f"**환자명:** {row['환자성함']}")
+                        with col2:
+                            st.write(f"**분류:** {row['분류']}")
+                        with col3:
+                            st.write(f"**진단원장:** {row['진단원장']}")
+                        with col4:
+                            st.write(f"**상담일:** {row['날짜'].strftime('%Y-%m-%d')}")
+                        
+                        # 두 번째 행: 금액 / 주요포인트
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            try:
+                                amount = int(float(row['금액']))
+                                st.write(f"**금액:** {amount:,}원")
+                            except:
+                                st.write(f"**금액:** {row['금액']}")
+                        with col2:
+                            st.write(f"**주요포인트:** {row['주요포인트']}")
+                        
+                        # 세 번째 행: 상담내용
+                        st.write("---")
+                        st.write(f"**상담내용:**\n\n{row['상담내용']}")
+            else:
+                st.success("✅ 리콜이 필요한 환자가 없습니다!")
+        else:
+            st.info("📭 미확정 상담 기록이 없습니다.")
     else:
         st.info("📭 저장된 상담 기록이 없습니다.")
 
