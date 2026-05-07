@@ -57,7 +57,7 @@ def load_gsheet_data(conn):
             df['리콜상태'] = '미리콜'
         return df
     except Exception as e:
-        st.warning("⚠️ Google Sheets 연결 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+        st.error(f"🚨 에러 원인: {e}")
         return pd.DataFrame()
 
 def calculate_stats(df):
