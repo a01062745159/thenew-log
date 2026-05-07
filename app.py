@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime, timedelta
 import re
@@ -90,6 +89,35 @@ def load_gsheet_data():
     except Exception as e:
         st.error(f"🚨 Google Sheets 연결 에러: {str(e)}")
         return pd.DataFrame()
+
+def save_to_gsheet(df):
+    """Google Sheet에 데이터 저장"""
+    try:
+        credentials = st.secrets["connections"]["gsheets"]
+        scopes = ["https://www.googleapis.com/auth/spreadsheets",
+                  "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(credentials, scopes=scopes)
+        client = gspread.authorize(creds)
+        
+        spreadsheet_id = credentials["spreadsheet"]
+        spreadsheet = client.open_by_key(spreadsheet_id)
+        worksheet = spreadsheet.worksheet("상담일지")
+        
+        # 기존 데이터 모두 삭제
+        worksheet.clear()
+        
+        # 헤더 추가
+        headers = df.columns.tolist()
+        worksheet.append_row(headers)
+        
+        # 데이터 추가
+        data_values = df.values.tolist()
+        worksheet.append_rows(data_values)
+        
+        return True
+    except Exception as e:
+        st.error(f"🚨 저장 에러: {str(e)}")
+        return False
 
 def calculate_stats(df):
     """통계 계산"""
@@ -281,13 +309,13 @@ with tab_write:
                 }])
                 try:
                     updated_df = pd.concat([df, new_entry], ignore_index=True)
-                    conn.update(data=updated_df[EXPECTED_COLS])
-                    
-                    st.success("✅ 저장되었습니다!", icon="✅")
-                    st.balloons()  # 풍선 효과
-                    
-                    # 저장된 데이터 표시
-                    st.subheader("📝 방금 저장된 내용")
+                    if save_to_gsheet(updated_df[EXPECTED_COLS]):
+                        st.session_state.df_cache = updated_df
+                        st.success("✅ 저장되었습니다!", icon="✅")
+                        st.balloons()  # 풍선 효과
+                        
+                        # 저장된 데이터 표시
+                        st.subheader("📝 방금 저장된 내용")
                     col1, col2 = st.columns(2)
                     with col1:
                         st.write(f"**환자명:** {name}")
@@ -337,7 +365,7 @@ with tab_report:
     
     # 데이터 새로 읽기 (최신 데이터 가져오기)
     try:
-        df_tab2_source = conn.read(ttl="0s")
+        df_tab2_source = load_gsheet_data()
         df_tab2_source = df_tab2_source.dropna(subset=["환자성함"]).copy()
     except Exception as e:
         st.warning("⚠️ Google Sheets 연결 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
@@ -501,10 +529,11 @@ with tab_reminder:
                                 with col_yes:
                                     if st.button("✔️ 확인", key=f"confirm_yes_{idx}", use_container_width=True):
                                         df.loc[df.index == idx, '리콜상태'] = '리콜완료'
-                                        conn.update(data=df[EXPECTED_COLS])
-                                        st.session_state[f"confirm_{idx}"] = False
-                                        st.success("리콜 완료되었습니다!")
-                                        st.rerun()
+                                        if save_to_gsheet(df[EXPECTED_COLS]):
+                                            st.session_state.df_cache = df
+                                            st.session_state[f"confirm_{idx}"] = False
+                                            st.success("리콜 완료되었습니다!")
+                                            st.rerun()
                                 with col_no:
                                     if st.button("❌ 취소", key=f"confirm_no_{idx}", use_container_width=True):
                                         st.session_state[f"confirm_{idx}"] = False
@@ -535,10 +564,11 @@ with tab_reminder:
                                     with col_yes:
                                         if st.button("✔️ 확인", key=f"confirm_undo_yes_{idx}", use_container_width=True):
                                             df.loc[df.index == idx, '리콜상태'] = '미리콜'
-                                            conn.update(data=df[EXPECTED_COLS])
-                                            st.session_state[f"confirm_undo_{idx}"] = False
-                                            st.success("미리콜로 변경되었습니다!")
-                                            st.rerun()
+                                            if save_to_gsheet(df[EXPECTED_COLS]):
+                                                st.session_state.df_cache = df
+                                                st.session_state[f"confirm_undo_{idx}"] = False
+                                                st.success("미리콜로 변경되었습니다!")
+                                                st.rerun()
                                     with col_no:
                                         if st.button("❌ 취소", key=f"confirm_undo_no_{idx}", use_container_width=True):
                                             st.session_state[f"confirm_undo_{idx}"] = False
@@ -557,7 +587,7 @@ with tab_integrated:
     
     # 데이터 새로고침
     try:
-        df_integrated = conn.read(ttl="0s")
+        df_integrated = load_gsheet_data()
         df_integrated = df_integrated.dropna(subset=["환자성함"]).copy()
         if '진단원장' not in df_integrated.columns:
             df_integrated['진단원장'] = ''
