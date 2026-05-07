@@ -521,7 +521,7 @@ with tab4:
                     # expander 제목에 간단한 정보
                     col1, col2 = st.columns([20, 1])
                     with col1:
-                        with st.expander(f"👤 {row['환자성함']} | 차트: {row['차트번호']} | {row['경과일']}일 경과 | {int(float(row['금액'])) if pd.notnull(row['금액']) else 0:,}원 | 미확정 | {row['상담자']}", expanded=False):
+                        with st.expander(f"👤 {row['환자성함']} | 차트: {row['차트번호']} | {row['경과일']}일 경과 | {int(float(row['금액'])) if pd.notnull(row['금액']) else 0:,}원 | 미확정 | {row['상담자']}", expanded=True):
                             # 상세 내용
                             st.write(f"**주요포인트:** {row['주요포인트']}")
                             st.write(f"**상담내용:** {row['상담내용']}")
