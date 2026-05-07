@@ -60,18 +60,27 @@ def load_gsheet_data():
         spreadsheet = client.open_by_key(spreadsheet_id)
         worksheet = spreadsheet.worksheet("상담일지")
         
-        data = worksheet.get_all_records()
-        df = pd.DataFrame(data)
-        
-        if len(df) > 0:
+        try:
+            data = worksheet.get_all_records()
+            if not data:
+                return pd.DataFrame()
+            
+            df = pd.DataFrame(data)
+            
+            # 빈 행 제거
             df = df.dropna(how='all')
-        
-        if '진단원장' not in df.columns:
-            df['진단원장'] = ''
-        if '리콜상태' not in df.columns:
-            df['리콜상태'] = '미리콜'
-        
-        return df
+            
+            # 필수 컬럼 추가
+            if '진단원장' not in df.columns:
+                df['진단원장'] = ''
+            if '리콜상태' not in df.columns:
+                df['리콜상태'] = '미리콜'
+            
+            return df
+        except Exception as e:
+            st.warning(f"⚠️ 데이터 처리 중 오류: {str(e)}")
+            return pd.DataFrame()
+            
     except Exception as e:
         st.warning("⚠️ Google Sheets 연결 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
         return pd.DataFrame()
