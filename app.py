@@ -110,55 +110,65 @@ with tab1:
         elif not content:
             st.error("❌ 상담내용을 입력해주세요!")
         else:
-            worksheet = get_worksheet()
-            if worksheet:
+            # 데이터 준비
+            new_row = [
+                date.strftime("%Y-%m-%d"),
+                consultant,
+                doctor,
+                patient_name,
+                chart_no,
+                category,
+                result,
+                amount,
+                main_point,
+                content,
+                recall_status
+            ]
+            
+            # 재시도 로직 (최대 3회)
+            success = False
+            for attempt in range(3):
                 try:
-                    # 데이터 준비
-                    new_row = [
-                        date.strftime("%Y-%m-%d"),
-                        consultant,
-                        doctor,
-                        patient_name,
-                        chart_no,
-                        category,
-                        result,
-                        amount,
-                        main_point,
-                        content,
-                        recall_status
-                    ]
-                    
-                    # Google Sheets에 행 추가
-                    worksheet.append_row(new_row)
-                    
-                    st.success("✅ 저장되었습니다!")
-                    st.balloons()
-                    
-                    # 저장된 내용 표시
-                    st.subheader("📝 방금 저장된 내용")
-                    
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.write(f"**담당 상담자:** {consultant}")
-                    with col2:
-                        st.write(f"**진단 원장님:** {doctor}")
-                    with col3:
-                        st.write(f"**결과:** {result}")
-                    
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.write(f"**분류:** {category}")
-                    with col2:
-                        st.write(f"**환자 성함:** {patient_name}")
-                    with col3:
-                        st.write(f"**차트번호:** {chart_no}")
-                    
-                    st.write(f"**금액:** {amount}")
-                    st.write(f"**주요포인트:** {main_point}")
-                    st.write(f"**상세 상담 내용:** {content}")
-                    
+                    worksheet = get_worksheet()
+                    if worksheet:
+                        # Google Sheets에 행 추가
+                        worksheet.append_row(new_row)
+                        success = True
+                        break
                 except Exception as e:
-                    st.error(f"🚨 저장 중 에러 발생: {str(e)}")
+                    if attempt < 2:
+                        st.warning(f"⚠️ 저장 시도 {attempt + 1}/3 실패, 다시 시도 중...")
+                        import time
+                        time.sleep(1)
+                    else:
+                        st.error(f"🚨 저장 실패 (3회 시도): {str(e)}")
+            
+            if success:
+                st.success("✅ 저장되었습니다!")
+                st.balloons()
+                
+                # 저장된 내용 표시
+                st.subheader("📝 방금 저장된 내용")
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.write(f"**담당 상담자:** {consultant}")
+                with col2:
+                    st.write(f"**진단 원장님:** {doctor}")
+                with col3:
+                    st.write(f"**결과:** {result}")
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.write(f"**분류:** {category}")
+                with col2:
+                    st.write(f"**환자 성함:** {patient_name}")
+                with col3:
+                    st.write(f"**차트번호:** {chart_no}")
+                
+                st.write(f"**금액:** {amount}")
+                st.write(f"**주요포인트:** {main_point}")
+                st.write(f"**상세 상담 내용:** {content}")
 
 # ===== TAB 3: 상담일지 조회 =====
 with tab3:
