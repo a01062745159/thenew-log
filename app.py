@@ -44,12 +44,13 @@ def get_worksheet():
         st.error(f"🚨 Google Sheets 연결 실패: {str(e)}")
         return None
 
-def load_all_data():
-    """Google Sheets의 모든 데이터 로드"""
+def load_all_data(force_refresh=False):
+    """Google Sheets의 모든 데이터 로드 (강제 새로고침 옵션)"""
     try:
         worksheet = get_worksheet()
         if worksheet:
-            data = worksheet.get_all_records()
+            # 캐시 무시하고 최신 데이터 가져오기
+            data = worksheet.get_all_records(expect_headers=True)
             if data:
                 return pd.DataFrame(data)
         return pd.DataFrame()
@@ -182,7 +183,12 @@ with tab3:
     st.header("🔍 상담일지 조회")
     
     # 조회 방식 선택
-    search_type = st.radio("조회 방식을 선택하세요:", ["기간선택", "환자검색"], horizontal=True)
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        search_type = st.radio("조회 방식을 선택하세요:", ["기간선택", "환자검색"], horizontal=True)
+    with col2:
+        if st.button("🔄 새로고침", use_container_width=True):
+            st.rerun()
     
     if search_type == "기간선택":
         st.subheader("📅 기간 선택")
