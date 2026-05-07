@@ -194,7 +194,7 @@ with tab2:
                 
                 # 상담 내용 상세 표시
                 for idx, row in filtered_df.iterrows():
-                    with st.expander(f"📌 {row['날짜'].strftime('%Y-%m-%d')} - {row['환자성함']} (차트: {row['차트번호']}) - {row['상담자']}"):
+                    with st.expander(f"📌 {row['날짜'].strftime('%Y-%m-%d')} - {row['환자성함']} (차트: {row['차트번호']}) - {row['상담자']}", expanded=True):
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             st.write(f"**분류:** {row['분류']}")
@@ -232,7 +232,7 @@ with tab2:
                 
                 # 상담 내용 상세 표시
                 for idx, row in filtered_df.iterrows():
-                    with st.expander(f"📌 {row['날짜']} - {row['환자성함']} (차트: {row['차트번호']}) - {row['상담자']}"):
+                    with st.expander(f"📌 {row['날짜']} - {row['환자성함']} (차트: {row['차트번호']}) - {row['상담자']}", expanded=True):
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             st.write(f"**분류:** {row['분류']}")
