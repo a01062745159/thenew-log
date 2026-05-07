@@ -438,7 +438,7 @@ with tab3:
                 
                 # 상담 내용 상세 표시
                 for idx, row in report_filtered_df.iterrows():
-                    with st.expander(f"📌 {row['날짜'].strftime('%Y-%m-%d')} - {row['환자성함']} (차트: {row['차트번호']}) - {row['상담자']}", expanded=False):
+                    with st.expander(f"📌 {row['날짜'].strftime('%Y-%m-%d')} - {row['환자성함']} (차트: {row['차트번호']}) - {row['상담자']}", expanded=True):
                         # 첫 번째 행: 분류 / 진단원장 / 차트번호
                         col1, col2, col3 = st.columns(3)
                         with col1:
