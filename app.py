@@ -19,7 +19,7 @@ if not st.session_state.logged_in:
     with col2:
         password = st.text_input("🔑 비밀번호", type="password", placeholder="비밀번호 입력")
         if st.button("로그인", use_container_width=True):
-            if password == "2874":
+            if password == "7620":
                 st.session_state.logged_in = True
                 st.rerun()
             else:
