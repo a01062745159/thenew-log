@@ -67,7 +67,7 @@ with col3:
 # 두 번째 행: 분류 / 환자 성함 / 차트번호
 col1, col2, col3 = st.columns(3)
 with col1:
-    category = st.selectbox("📂 분류", ["예약 신청", "상담"])
+    category = st.selectbox("📂 분류", ["예약 신환", "미예약 신환", "예약 구환", "미예약 구환"])
 with col2:
     patient_name = st.text_input("👤 환자 성함", placeholder="이름 입력")
 with col3:
