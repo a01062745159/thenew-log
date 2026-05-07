@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
+import matplotlib.pyplot as plt
 
 # 페이지 설정
 st.set_page_config(page_title="더뉴치과 상담일지", layout="wide")
@@ -60,7 +61,7 @@ def load_all_data():
 st.title("📂 더뉴치과 상담일지")
 
 # 탭 생성
-tab1, tab2 = st.tabs(["📝 상담일지 작성", "🔍 상담일지 조회"])
+tab1, tab2, tab3 = st.tabs(["📝 상담일지 작성", "🔍 상담일지 조회", "📊 상담 보고"])
 
 # ===== TAB 1: 상담일지 작성 =====
 with tab1:
@@ -283,6 +284,157 @@ with tab2:
                 st.info(f"⚠️ '{search_name}'의 상담 기록이 없습니다.")
         elif search_name:
             st.info("📭 저장된 상담 기록이 없습니다.")
+
+# ===== TAB 3: 상담 보고 =====
+with tab3:
+    st.header("📊 상담 보고")
+    
+    # 상담자 선택 및 기간 선택
+    col1, col2, col3 = st.columns([2, 2, 2])
+    with col1:
+        selected_consultant = st.selectbox("👤 상담자 선택", ["우다혜", "전누리", "임예린"])
+    with col2:
+        report_start_date = st.date_input("시작일", datetime.now().date())
+    with col3:
+        report_end_date = st.date_input("종료일", datetime.now().date())
+    
+    # 데이터 로드 및 필터링
+    df = load_all_data()
+    
+    if not df.empty:
+        # 날짜 필터링
+        df['날짜'] = pd.to_datetime(df['날짜'])
+        start_date_str = pd.to_datetime(report_start_date)
+        end_date_str = pd.to_datetime(report_end_date)
+        
+        # 기간 및 상담자 필터링
+        filtered_df = df[(df['날짜'] >= start_date_str) & 
+                         (df['날짜'] <= end_date_str) &
+                         (df['상담자'] == selected_consultant)]
+        
+        if not filtered_df.empty:
+            # ===== 통계 계산 =====
+            total_count = len(filtered_df)
+            confirmed_count = len(filtered_df[filtered_df['상담결과'] == '확정'])
+            unconfirmed_count = len(filtered_df[filtered_df['상담결과'] == '미확정'])
+            
+            # 금액 계산
+            filtered_df['금액_숫자'] = pd.to_numeric(filtered_df['금액'], errors='coerce').fillna(0)
+            total_amount = int(filtered_df['금액_숫자'].sum())
+            confirmed_amount = int(filtered_df[filtered_df['상담결과'] == '확정']['금액_숫자'].sum())
+            unconfirmed_amount = int(filtered_df[filtered_df['상담결과'] == '미확정']['금액_숫자'].sum())
+            
+            # 동의율
+            agreement_rate = (confirmed_count / total_count * 100) if total_count > 0 else 0
+            
+            # ===== 통계 표시 =====
+            st.subheader("📈 통계")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("전체 상담 건수", f"{total_count}건")
+            with col2:
+                st.metric("총 상담액", f"{total_amount:,}원")
+            with col3:
+                st.metric("동의율", f"{agreement_rate:.1f}%")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("확정 건수", f"{confirmed_count}건")
+            with col2:
+                st.metric("미확정 건수", f"{unconfirmed_count}건")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("확정 상담액", f"{confirmed_amount:,}원")
+            with col2:
+                st.metric("미확정 상담액", f"{unconfirmed_amount:,}원")
+            
+            st.divider()
+            
+            # ===== 상담자별 매출 및 성과 =====
+            st.subheader("👥 상담자별 매출 및 성과")
+            
+            # 전체 상담자별 데이터
+            all_consultants_df = df[(df['날짜'] >= start_date_str) & (df['날짜'] <= end_date_str)]
+            
+            if not all_consultants_df.empty:
+                consultant_stats = []
+                
+                for consultant in ["우다혜", "전누리", "임예린"]:
+                    consultant_data = all_consultants_df[all_consultants_df['상담자'] == consultant]
+                    
+                    if len(consultant_data) > 0:
+                        cons_count = len(consultant_data)
+                        cons_confirmed = len(consultant_data[consultant_data['상담결과'] == '확정'])
+                        cons_unconfirmed = len(consultant_data[consultant_data['상담결과'] == '미확정'])
+                        cons_rate = (cons_confirmed / cons_count * 100) if cons_count > 0 else 0
+                        
+                        consultant_data['금액_숫자'] = pd.to_numeric(consultant_data['금액'], errors='coerce').fillna(0)
+                        cons_confirmed_amount = int(consultant_data[consultant_data['상담결과'] == '확정']['금액_숫자'].sum())
+                        cons_unconfirmed_amount = int(consultant_data[consultant_data['상담결과'] == '미확정']['금액_숫자'].sum())
+                        
+                        consultant_stats.append({
+                            "상담자": consultant,
+                            "상담건수": cons_count,
+                            "확정건수": cons_confirmed,
+                            "미확정건수": cons_unconfirmed,
+                            "동의율(%)": f"{cons_rate:.1f}",
+                            "확정매출": f"{cons_confirmed_amount:,}",
+                            "미확정매출": f"{cons_unconfirmed_amount:,}"
+                        })
+                
+                consultant_df = pd.DataFrame(consultant_stats)
+                st.dataframe(consultant_df, use_container_width=True, hide_index=True)
+            
+            st.divider()
+            
+            # ===== 분류별 상담 현황 =====
+            st.subheader("📂 분류별 상담 현황")
+            
+            # 분류별 통계
+            category_stats = []
+            for category in filtered_df['분류'].unique():
+                category_data = filtered_df[filtered_df['분류'] == category]
+                confirmed = len(category_data[category_data['상담결과'] == '확정'])
+                unconfirmed = len(category_data[category_data['상담결과'] == '미확정'])
+                
+                category_stats.append({
+                    "분류": category,
+                    "확정": confirmed,
+                    "미확정": unconfirmed
+                })
+            
+            category_df = pd.DataFrame(category_stats)
+            
+            if not category_df.empty:
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.dataframe(category_df, use_container_width=True, hide_index=True)
+                
+                with col2:
+                    # 분류별 차트
+                    import matplotlib.pyplot as plt
+                    fig, ax = plt.subplots(figsize=(8, 6))
+                    x = range(len(category_df))
+                    width = 0.35
+                    
+                    ax.bar([i - width/2 for i in x], category_df['확정'], width, label='확정', color='#3498db')
+                    ax.bar([i + width/2 for i in x], category_df['미확정'], width, label='미확정', color='#e74c3c')
+                    
+                    ax.set_xlabel('분류', fontproperties='DejaVu Sans')
+                    ax.set_ylabel('건수', fontproperties='DejaVu Sans')
+                    ax.set_title('분류별 상담 현황', fontproperties='DejaVu Sans')
+                    ax.set_xticks(x)
+                    ax.set_xticklabels(category_df['분류'], fontproperties='DejaVu Sans')
+                    ax.legend(fontsize=10)
+                    ax.grid(axis='y', alpha=0.3)
+                    
+                    st.pyplot(fig)
+        else:
+            st.info(f"⚠️ 해당 기간에 {selected_consultant}의 상담 기록이 없습니다.")
+    else:
+        st.info("📭 저장된 상담 기록이 없습니다.")
 
 # 하단 로그아웃
 st.divider()
