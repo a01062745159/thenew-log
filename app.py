@@ -1,11 +1,10 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime, timedelta
 import re
-import gspread
-from google.oauth2.service_account import Credentials
 
-st.set_page_config(page_title="더뉴치과 상담일지", layout="wide")
+st.set_page_config(page_title="수려한치과 상담일지", layout="wide")
 
 # 스타일 설정
 st.markdown("""
@@ -47,78 +46,19 @@ def filter_by_date_range(df, start_date, end_date):
     end_str = end_date.strftime("%Y-%m-%d")
     return df[(df['날짜'] >= start_str) & (df['날짜'] <= end_str)].copy()
 
-def load_gsheet_data():
-    """Google Sheet에서 데이터 로드 (캐싱)"""
-    # Session state 사용 (매번 새로 로드하지 않음)
-    if "df_cache" not in st.session_state:
-        try:
-            credentials = st.secrets["connections"]["gsheets"]
-            scopes = ["https://www.googleapis.com/auth/spreadsheets",
-                      "https://www.googleapis.com/auth/drive"]
-            creds = Credentials.from_service_account_info(credentials, scopes=scopes)
-            client = gspread.authorize(creds)
-            
-            spreadsheet_id = credentials["spreadsheet"]
-            spreadsheet = client.open_by_key(spreadsheet_id)
-            worksheet = spreadsheet.worksheet("상담일지")
-            
-            data = worksheet.get_all_records()
-            if not data:
-                st.session_state.df_cache = pd.DataFrame()
-            else:
-                df = pd.DataFrame(data)
-                df = df.dropna(how='all')
-                
-                if '진단원장' not in df.columns:
-                    df['진단원장'] = ''
-                if '리콜상태' not in df.columns:
-                    df['리콜상태'] = '미리콜'
-                
-                st.session_state.df_cache = df
-                
-        except Exception as e:
-            st.session_state.df_cache = pd.DataFrame()
-    
-    return st.session_state.df_cache
-
-def save_to_gsheet(df, columns_to_save):
-    """Google Sheet에 데이터 저장 (안전한 append 방식)"""
+def load_gsheet_data(conn):
+    """Google Sheet에서 데이터 로드"""
     try:
-        credentials = st.secrets["connections"]["gsheets"]
-        scopes = ["https://www.googleapis.com/auth/spreadsheets",
-                  "https://www.googleapis.com/auth/drive"]
-        creds = Credentials.from_service_account_info(credentials, scopes=scopes)
-        client = gspread.authorize(creds)
-        
-        spreadsheet_id = credentials["spreadsheet"]
-        spreadsheet = client.open_by_key(spreadsheet_id)
-        worksheet = spreadsheet.worksheet("상담일지")
-        
-        # 기존 데이터 가져오기
-        existing_data = worksheet.get_all_values()
-        
-        # 헤더가 없으면 추가
-        if not existing_data:
-            headers = df[columns_to_save].columns.tolist()
-            worksheet.append_row(headers)
-        
-        # 새로운 데이터만 추가 (마지막 행 이후부터)
-        last_row = len(existing_data)
-        
-        # 추가할 데이터
-        new_data = df[columns_to_save].iloc[last_row-1:].values.tolist() if last_row > 1 else df[columns_to_save].values.tolist()
-        
-        if new_data:
-            for row in new_data:
-                worksheet.append_row(row)
-        
-        # 캐시 업데이트
-        st.session_state.df_cache = df
-        
-        return True
+        df = conn.read(ttl="0s")
+        df = df.dropna(subset=["환자성함"]).copy()
+        if '진단원장' not in df.columns:
+            df['진단원장'] = ''
+        if '리콜상태' not in df.columns:
+            df['리콜상태'] = '미리콜'
+        return df
     except Exception as e:
-        st.error(f"🚨 저장 중 에러: {str(e)}")
-        return False
+        st.warning("⚠️ Google Sheets 연결 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+        return pd.DataFrame()
 
 def calculate_stats(df):
     """통계 계산"""
@@ -220,14 +160,15 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ===== 로그인 성공 후 앱 시작 =====
-st.title("📂 더뉴치과 상담일지")
+st.title("📂 수려한치과 상담일지")
 
+conn = st.connection("gsheets", type=GSheetsConnection)
 EXPECTED_COLS = ["날짜", "상담자", "진단원장", "환자성함", "차트번호", "분류", "상담결과", "금액", "주요포인트", "상담내용", "리콜상태"]
-COUNSELORS = ["우다혜", "전누리", "임예린"]
-DOCTORS = ["김동현 원장", "김언형 원장", "정성영 원장", "박경리 원장", "권영은 원장"]
+COUNSELORS = ["오용성 실장", "서해 실장", "김지향 과장", "박승미 과장", "배지윤 팀장", "김소연 팀장", "최수진 팀장"]
+DOCTORS = ["안정선 대표원장", "김동현 대표원장", "이성재 수석원장", "박지호 원장", "이동호 원장", "신효담 원장", "구다솜 원장", "강순영 원장(교정)", "윤소정 원장(교정)"]
 
 # 데이터 로드
-df = load_gsheet_data()
+df = load_gsheet_data(conn)
 
 # ===== 6개 탭 생성 (정렬된 순서) =====
 tabs_list = st.tabs([
@@ -307,13 +248,13 @@ with tab_write:
                 }])
                 try:
                     updated_df = pd.concat([df, new_entry], ignore_index=True)
-                    if save_to_gsheet(updated_df, EXPECTED_COLS):
-                        st.session_state.df_cache = updated_df
-                        st.success("✅ 저장되었습니다!", icon="✅")
-                        st.balloons()  # 풍선 효과
-                        
-                        # 저장된 데이터 표시
-                        st.subheader("📝 방금 저장된 내용")
+                    conn.update(data=updated_df[EXPECTED_COLS])
+                    
+                    st.success("✅ 저장되었습니다!", icon="✅")
+                    st.balloons()  # 풍선 효과
+                    
+                    # 저장된 데이터 표시
+                    st.subheader("📝 방금 저장된 내용")
                     col1, col2 = st.columns(2)
                     with col1:
                         st.write(f"**환자명:** {name}")
@@ -363,7 +304,7 @@ with tab_report:
     
     # 데이터 새로 읽기 (최신 데이터 가져오기)
     try:
-        df_tab2_source = load_gsheet_data()
+        df_tab2_source = conn.read(ttl="0s")
         df_tab2_source = df_tab2_source.dropna(subset=["환자성함"]).copy()
     except Exception as e:
         st.warning("⚠️ Google Sheets 연결 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
@@ -527,10 +468,10 @@ with tab_reminder:
                                 with col_yes:
                                     if st.button("✔️ 확인", key=f"confirm_yes_{idx}", use_container_width=True):
                                         df.loc[df.index == idx, '리콜상태'] = '리콜완료'
-                                        if save_to_gsheet(df, EXPECTED_COLS):
-                                            st.session_state[f"confirm_{idx}"] = False
-                                            st.success("리콜 완료되었습니다!")
-                                            st.rerun()
+                                        conn.update(data=df[EXPECTED_COLS])
+                                        st.session_state[f"confirm_{idx}"] = False
+                                        st.success("리콜 완료되었습니다!")
+                                        st.rerun()
                                 with col_no:
                                     if st.button("❌ 취소", key=f"confirm_no_{idx}", use_container_width=True):
                                         st.session_state[f"confirm_{idx}"] = False
@@ -561,10 +502,10 @@ with tab_reminder:
                                     with col_yes:
                                         if st.button("✔️ 확인", key=f"confirm_undo_yes_{idx}", use_container_width=True):
                                             df.loc[df.index == idx, '리콜상태'] = '미리콜'
-                                            if save_to_gsheet(df, EXPECTED_COLS):
-                                                st.session_state[f"confirm_undo_{idx}"] = False
-                                                st.success("미리콜로 변경되었습니다!")
-                                                st.rerun()
+                                            conn.update(data=df[EXPECTED_COLS])
+                                            st.session_state[f"confirm_undo_{idx}"] = False
+                                            st.success("미리콜로 변경되었습니다!")
+                                            st.rerun()
                                     with col_no:
                                         if st.button("❌ 취소", key=f"confirm_undo_no_{idx}", use_container_width=True):
                                             st.session_state[f"confirm_undo_{idx}"] = False
@@ -583,7 +524,7 @@ with tab_integrated:
     
     # 데이터 새로고침
     try:
-        df_integrated = load_gsheet_data()
+        df_integrated = conn.read(ttl="0s")
         df_integrated = df_integrated.dropna(subset=["환자성함"]).copy()
         if '진단원장' not in df_integrated.columns:
             df_integrated['진단원장'] = ''
