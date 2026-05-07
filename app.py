@@ -76,7 +76,11 @@ def load_gsheet_data():
         df = pd.DataFrame(data)
         
         # 필수 컬럼 확인 및 추가
-        df = df.dropna(subset=["환자성함"]).copy()
+        if len(df) > 0:
+            # 빈 행 제거 (모든 컬럼이 빈 경우만)
+            df = df.dropna(how='all')
+        
+        # 컬럼 추가
         if '진단원장' not in df.columns:
             df['진단원장'] = ''
         if '리콜상태' not in df.columns:
