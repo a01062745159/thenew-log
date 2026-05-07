@@ -49,7 +49,7 @@ def filter_by_date_range(df, start_date, end_date):
 def load_gsheet_data(conn):
     """Google Sheet에서 데이터 로드"""
     try:
-        df = conn.read(ttl="0s")
+        df = conn.read(ttl="10m")
         df = df.dropna(subset=["환자성함"]).copy()
         if '진단원장' not in df.columns:
             df['진단원장'] = ''
