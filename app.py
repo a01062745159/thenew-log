@@ -46,35 +46,48 @@ def get_worksheet():
 # ===== 메인 앱 =====
 st.title("📝 더뉴치과 상담일지 작성")
 
-# 입력 폼
+# 우측 상단에 입력 날짜
+col_spacer, col_date = st.columns([4, 1])
+with col_date:
+    st.markdown("**📅 입력 날짜**")
+    date = st.date_input("", datetime.now().date(), label_visibility="collapsed")
+
+st.divider()
+
+# 입력 폼 (정렬된 구조)
 st.header("📋 상담 정보 입력")
 
+# 첫 번째 행: 담당 상담자 / 진단 원장님 / 결과
 col1, col2, col3 = st.columns(3)
 with col1:
-    date = st.date_input("📅 날짜", datetime.now().date())
+    consultant = st.selectbox("👤 담당 상담자", ["우다혜", "전누리", "임예린"])
 with col2:
-    consultant = st.selectbox("👤 상담자", ["우다혜", "전누리", "임예린"])
+    doctor = st.selectbox("🩺 진단 원장님", ["김동현 원장", "김언형 원장", "정성영 원장", "박경리 원장", "권영은 원장"])
 with col3:
-    doctor = st.selectbox("🩺 진단원장", ["김동현 원장", "김언형 원장", "정성영 원장", "박경리 원장", "권영은 원장"])
+    result = st.selectbox("✅ 결과", ["확정", "미확정"])
 
+# 두 번째 행: 분류 / 환자 성함 / 차트번호
 col1, col2, col3 = st.columns(3)
 with col1:
-    patient_name = st.text_input("👤 환자성함", placeholder="이름 입력")
-with col2:
-    chart_no = st.text_input("🔢 차트번호", placeholder="번호 입력")
-with col3:
     category = st.selectbox("📂 분류", ["예약 신청", "상담"])
+with col2:
+    patient_name = st.text_input("👤 환자 성함", placeholder="이름 입력")
+with col3:
+    chart_no = st.text_input("🔢 차트번호", placeholder="번호 입력")
 
+# 세 번째 행: 금액
 col1, col2, col3 = st.columns(3)
 with col1:
-    result = st.selectbox("✅ 상담결과", ["확정", "미확정"])
-with col2:
     amount = st.text_input("💰 금액", placeholder="0", value="0")
-with col3:
-    main_point = st.text_input("⭐ 주요포인트", placeholder="포인트 입력", value="0")
 
-content = st.text_area("💬 상담내용", placeholder="상담 내용을 입력하세요...", height=150)
-recall_status = st.text_input("🔄 리콜상태", placeholder="미리콜", value="미리콜")
+# 네 번째 행: 주요포인트
+main_point = st.text_input("⭐ 주요포인트", placeholder="포인트 입력")
+
+# 다섯 번째 행: 상세 상담 내용
+content = st.text_area("💬 상세 상담 내용", placeholder="상담 내용을 입력하세요...", height=200)
+
+# 숨겨진 필드 (저장용)
+recall_status = "미리콜"
 
 # ===== 저장 버튼 =====
 if st.button("💾 저장하기", use_container_width=True):
@@ -109,21 +122,26 @@ if st.button("💾 저장하기", use_container_width=True):
                 
                 # 저장된 내용 표시
                 st.subheader("📝 방금 저장된 내용")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write(f"**날짜:** {date}")
-                    st.write(f"**상담자:** {consultant}")
-                    st.write(f"**진단원장:** {doctor}")
-                    st.write(f"**환자성함:** {patient_name}")
-                    st.write(f"**차트번호:** {chart_no}")
-                with col2:
-                    st.write(f"**분류:** {category}")
-                    st.write(f"**상담결과:** {result}")
-                    st.write(f"**금액:** {amount}")
-                    st.write(f"**주요포인트:** {main_point}")
-                    st.write(f"**리콜상태:** {recall_status}")
                 
-                st.write(f"**상담내용:** {content}")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.write(f"**담당 상담자:** {consultant}")
+                with col2:
+                    st.write(f"**진단 원장님:** {doctor}")
+                with col3:
+                    st.write(f"**결과:** {result}")
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.write(f"**분류:** {category}")
+                with col2:
+                    st.write(f"**환자 성함:** {patient_name}")
+                with col3:
+                    st.write(f"**차트번호:** {chart_no}")
+                
+                st.write(f"**금액:** {amount}")
+                st.write(f"**주요포인트:** {main_point}")
+                st.write(f"**상세 상담 내용:** {content}")
                 
             except Exception as e:
                 st.error(f"🚨 저장 중 에러 발생: {str(e)}")
