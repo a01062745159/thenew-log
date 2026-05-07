@@ -527,11 +527,12 @@ with tab4:
                         st.divider()
                         
                         # 리콜 버튼
-                        if st.button("✅ 리콜완료", key=f"recall_{idx}", use_container_width=True):
-                            st.session_state[f"recall_confirm_{idx}"] = True
+                        if st.button("✅ 리콜완료", key=f"recall_btn_{idx}", use_container_width=True):
+                            # 버튼 클릭 시 바로 Google Sheets에 리콜상태 업데이트
+                            st.session_state[f"show_confirm_{idx}"] = True
                         
-                        # 리콜 완료 확인
-                        if st.session_state.get(f"recall_confirm_{idx}", False):
+                        # 확인 메시지 표시
+                        if st.session_state.get(f"show_confirm_{idx}", False):
                             st.warning(f"❓ {row['환자성함']} (차트: {row['차트번호']})의 리콜을 완료하시겠습니까?")
                             
                             col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
@@ -551,7 +552,7 @@ with tab4:
                                                     record.get('날짜') == row['날짜'].strftime('%Y-%m-%d')):
                                                     # 리콜상태 업데이트
                                                     worksheet.update_cell(i + 2, 11, "리콜완료")
-                                                    st.session_state[f"recall_confirm_{idx}"] = False
+                                                    st.session_state[f"show_confirm_{idx}"] = False
                                                     st.success(f"✅ {row['환자성함']}의 리콜이 완료되었습니다!")
                                                     st.rerun()
                                                     break
@@ -559,7 +560,7 @@ with tab4:
                                         st.error(f"🚨 리콜 완료 중 에러: {str(e)}")
                             with col3:
                                 if st.button("❌ 취소", key=f"cancel_{idx}", use_container_width=True):
-                                    st.session_state[f"recall_confirm_{idx}"] = False
+                                    st.session_state[f"show_confirm_{idx}"] = False
                                     st.rerun()
             else:
                 st.success("✅ 리콜이 필요한 환자가 없습니다!")
