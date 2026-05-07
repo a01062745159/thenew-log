@@ -527,16 +527,16 @@ with tab4:
                         st.divider()
                         
                         # 리콜 버튼
-                        if st.button("✅ 리콜완료", key=f"recall_{idx}"):
+                        if st.button("✅ 리콜완료", key=f"recall_{idx}", use_container_width=True):
                             st.session_state[f"recall_confirm_{idx}"] = True
                         
                         # 리콜 완료 확인
                         if st.session_state.get(f"recall_confirm_{idx}", False):
                             st.warning(f"❓ {row['환자성함']} (차트: {row['차트번호']})의 리콜을 완료하시겠습니까?")
                             
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button("✅ 확인", key=f"confirm_{idx}"):
+                            col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+                            with col2:
+                                if st.button("✅ 확인", key=f"confirm_{idx}", use_container_width=True):
                                     # Google Sheets에 리콜상태 업데이트
                                     try:
                                         worksheet = get_worksheet()
@@ -557,8 +557,8 @@ with tab4:
                                                     break
                                     except Exception as e:
                                         st.error(f"🚨 리콜 완료 중 에러: {str(e)}")
-                            with col2:
-                                if st.button("❌ 취소", key=f"cancel_{idx}"):
+                            with col3:
+                                if st.button("❌ 취소", key=f"cancel_{idx}", use_container_width=True):
                                     st.session_state[f"recall_confirm_{idx}"] = False
                                     st.rerun()
             else:
