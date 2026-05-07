@@ -46,16 +46,14 @@ def get_worksheet():
 # ===== 메인 앱 =====
 st.title("📝 더뉴치과 상담일지 작성")
 
-# 우측 상단에 입력 날짜
-col_spacer, col_date = st.columns([4, 1])
-with col_date:
-    st.markdown("**📅 입력 날짜**")
-    date = st.date_input("", datetime.now().date(), label_visibility="collapsed")
+# 입력 폼
+st.header("📋 상담 정보 입력")
+
+# 입력 날짜 (전체 너비)
+st.markdown("**📅 입력 날짜**")
+date = st.date_input("", datetime.now().date(), label_visibility="collapsed")
 
 st.divider()
-
-# 입력 폼 (정렬된 구조)
-st.header("📋 상담 정보 입력")
 
 # 첫 번째 행: 담당 상담자 / 진단 원장님 / 결과
 col1, col2, col3 = st.columns(3)
@@ -75,10 +73,8 @@ with col2:
 with col3:
     chart_no = st.text_input("🔢 차트번호", placeholder="번호 입력")
 
-# 세 번째 행: 금액
-col1, col2, col3 = st.columns(3)
-with col1:
-    amount = st.text_input("💰 금액", placeholder="0", value="0")
+# 세 번째 행: 금액 (전체 너비)
+amount = st.text_input("💰 금액", placeholder="0", value="0")
 
 # 네 번째 행: 주요포인트
 main_point = st.text_input("⭐ 주요포인트", placeholder="포인트 입력")
