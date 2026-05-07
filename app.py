@@ -69,7 +69,7 @@ with tab1:
     
     # 입력 날짜 (전체 너비)
     st.markdown("**📅 입력 날짜**")
-    date = st.date_input("", datetime.now().date(), label_visibility="collapsed")
+    date = st.date_input("", datetime.now().date(), label_visibility="collapsed", key="tab1_date")
     
     st.divider()
     
@@ -171,9 +171,9 @@ with tab2:
         st.subheader("📅 기간 선택")
         col1, col2 = st.columns(2)
         with col1:
-            start_date = st.date_input("시작일", datetime.now().date())
+            start_date = st.date_input("시작일", datetime.now().date(), key="tab2_start")
         with col2:
-            end_date = st.date_input("종료일", datetime.now().date())
+            end_date = st.date_input("종료일", datetime.now().date(), key="tab2_end")
         
         # 데이터 로드 및 필터링
         df = load_all_data()
@@ -232,7 +232,7 @@ with tab2:
     
     else:  # 환자검색
         st.subheader("👤 환자 검색")
-        search_name = st.text_input("환자 성함을 입력하세요:", placeholder="이름 입력")
+        search_name = st.text_input("환자 성함을 입력하세요:", placeholder="이름 입력", key="tab2_search")
         
         # 데이터 로드
         df = load_all_data()
@@ -292,11 +292,11 @@ with tab3:
     # 상담자 선택 및 기간 선택
     col1, col2, col3 = st.columns([2, 2, 2])
     with col1:
-        selected_consultant = st.selectbox("👤 상담자 선택", ["우다혜", "전누리", "임예린"])
+        selected_consultant = st.selectbox("👤 상담자 선택", ["우다혜", "전누리", "임예린"], key="tab3_consultant")
     with col2:
-        report_start_date = st.date_input("시작일", datetime.now().date())
+        report_start_date = st.date_input("시작일", datetime.now().date(), key="tab3_start")
     with col3:
-        report_end_date = st.date_input("종료일", datetime.now().date())
+        report_end_date = st.date_input("종료일", datetime.now().date(), key="tab3_end")
     
     # 데이터 로드 및 필터링
     df = load_all_data()
