@@ -3,6 +3,10 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime, timedelta
 import re
+import matplotlib.pyplot as plt
+import matplotlib
+from io import BytesIO
+import zipfile
 
 st.set_page_config(page_title="더뉴치과 상담일지", layout="wide")
 
@@ -46,10 +50,11 @@ def filter_by_date_range(df, start_date, end_date):
     end_str = end_date.strftime("%Y-%m-%d")
     return df[(df['날짜'] >= start_str) & (df['날짜'] <= end_str)].copy()
 
+@st.cache_data(ttl=3600)  # 1시간마다 업데이트
 def load_gsheet_data(conn):
     """Google Sheet에서 데이터 로드"""
     try:
-        df = conn.read(ttl="10m")
+        df = conn.read(ttl="60m")  # TTL을 60분으로 설정
         df = df.dropna(subset=["환자성함"]).copy()
         if '진단원장' not in df.columns:
             df['진단원장'] = ''
@@ -755,14 +760,21 @@ with tab_download:
                 # PNG 이미지 다운로드 (ZIP 파일로 통합)
                 st.subheader("📸 이미지 다운로드 (카톡 공유용)")
                 
-                import matplotlib.pyplot as plt
-                import matplotlib
-                from io import BytesIO
-                import zipfile
-                
-                # matplotlib 한글 폰트 설정
+                # ZIP 파일 생성
                 plt.rcParams['font.family'] = 'DejaVu Sans'
                 plt.rcParams['axes.unicode_minus'] = False
+                
+                # 한글 폰트 시도 (시스템에 따라 다름)
+                try:
+                    import matplotlib.font_manager as fm
+                    # 시스템 한글 폰트 찾기
+                    font_names = [f.name for f in fm.fontManager.ttflist]
+                    if 'Noto Sans CJK JP' in font_names:
+                        plt.rcParams['font.family'] = 'Noto Sans CJK JP'
+                    elif 'DejaVu Sans' in font_names:
+                        plt.rcParams['font.family'] = 'DejaVu Sans'
+                except:
+                    pass
                 
                 # ZIP 파일 생성
                 zip_buffer = BytesIO()
