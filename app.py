@@ -50,7 +50,7 @@ def load_all_data(force_refresh=False):
         worksheet = get_worksheet()
         if worksheet:
             # 캐시 무시하고 최신 데이터 가져오기
-            data = worksheet.get_all_records(expect_headers=True)
+            data = worksheet.get_all_records()
             if data:
                 return pd.DataFrame(data)
         return pd.DataFrame()
