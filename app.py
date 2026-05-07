@@ -61,7 +61,7 @@ def load_all_data():
 st.title("📂 더뉴치과 상담일지")
 
 # 탭 생성
-tab1, tab2, tab3, tab4 = st.tabs(["📝 상담일지 작성", "🔍 상담일지 조회", "📊 상담 보고", "📞 미확정 리마인더"])
+tab1, tab2, tab3, tab4 = st.tabs(["📝 상담일지 작성", "📞 미확정 리마인더", "🔍 상담일지 조회", "📊 상담 보고"])
 
 # ===== TAB 1: 상담일지 작성 =====
 with tab1:
@@ -160,8 +160,8 @@ with tab1:
                 except Exception as e:
                     st.error(f"🚨 저장 중 에러 발생: {str(e)}")
 
-# ===== TAB 2: 상담일지 조회 =====
-with tab2:
+# ===== TAB 3: 상담일지 조회 =====
+with tab3:
     st.header("🔍 상담일지 조회")
     
     # 조회 방식 선택
@@ -291,8 +291,8 @@ with tab2:
         elif search_name:
             st.info("📭 저장된 상담 기록이 없습니다.")
 
-# ===== TAB 3: 상담 보고 =====
-with tab3:
+# ===== TAB 4: 상담 보고 =====
+with tab4:
     st.header("📊 상담 보고")
     
     # 상담자 선택 및 기간 선택
@@ -473,8 +473,8 @@ with tab3:
     else:
         st.info("📭 저장된 상담 기록이 없습니다.")
 
-# ===== TAB 4: 미확정 리마인더 =====
-with tab4:
+# ===== TAB 2: 미확정 리마인더 =====
+with tab2:
     st.header("📞 미확정 리마인더")
     
     # 상담자 선택
