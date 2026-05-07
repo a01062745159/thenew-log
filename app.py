@@ -292,7 +292,7 @@ with tab3:
     # 상담자 선택 및 기간 선택
     col1, col2, col3 = st.columns([2, 2, 2])
     with col1:
-        selected_consultant = st.selectbox("👤 상담자 선택", ["우다혜", "전누리", "임예린"], key="tab3_consultant")
+        selected_consultant = st.selectbox("👤 상담자 선택", ["전체", "우다혜", "전누리", "임예린"], key="tab3_consultant")
     with col2:
         report_start_date = st.date_input("시작일", datetime.now().date(), key="tab3_start")
     with col3:
@@ -308,9 +308,12 @@ with tab3:
         end_date_str = pd.to_datetime(report_end_date)
         
         # 기간 및 상담자 필터링
-        filtered_df = df[(df['날짜'] >= start_date_str) & 
-                         (df['날짜'] <= end_date_str) &
-                         (df['상담자'] == selected_consultant)]
+        if selected_consultant == "전체":
+            filtered_df = df[(df['날짜'] >= start_date_str) & (df['날짜'] <= end_date_str)]
+        else:
+            filtered_df = df[(df['날짜'] >= start_date_str) & 
+                             (df['날짜'] <= end_date_str) &
+                             (df['상담자'] == selected_consultant)]
         
         if not filtered_df.empty:
             # ===== 통계 계산 =====
@@ -364,25 +367,28 @@ with tab3:
                 for consultant in ["우다혜", "전누리", "임예린"]:
                     consultant_data = all_consultants_df[all_consultants_df['상담자'] == consultant]
                     
-                    if len(consultant_data) > 0:
-                        cons_count = len(consultant_data)
-                        cons_confirmed = len(consultant_data[consultant_data['상담결과'] == '확정'])
-                        cons_unconfirmed = len(consultant_data[consultant_data['상담결과'] == '미확정'])
-                        cons_rate = (cons_confirmed / cons_count * 100) if cons_count > 0 else 0
-                        
+                    cons_count = len(consultant_data)
+                    cons_confirmed = len(consultant_data[consultant_data['상담결과'] == '확정']) if cons_count > 0 else 0
+                    cons_unconfirmed = len(consultant_data[consultant_data['상담결과'] == '미확정']) if cons_count > 0 else 0
+                    cons_rate = (cons_confirmed / cons_count * 100) if cons_count > 0 else 0
+                    
+                    if cons_count > 0:
                         consultant_data['금액_숫자'] = pd.to_numeric(consultant_data['금액'], errors='coerce').fillna(0)
                         cons_confirmed_amount = int(consultant_data[consultant_data['상담결과'] == '확정']['금액_숫자'].sum())
                         cons_unconfirmed_amount = int(consultant_data[consultant_data['상담결과'] == '미확정']['금액_숫자'].sum())
-                        
-                        consultant_stats.append({
-                            "상담자": consultant,
-                            "상담건수": cons_count,
-                            "확정건수": cons_confirmed,
-                            "미확정건수": cons_unconfirmed,
-                            "동의율(%)": f"{cons_rate:.1f}",
-                            "확정매출": f"{cons_confirmed_amount:,}",
-                            "미확정매출": f"{cons_unconfirmed_amount:,}"
-                        })
+                    else:
+                        cons_confirmed_amount = 0
+                        cons_unconfirmed_amount = 0
+                    
+                    consultant_stats.append({
+                        "상담자": consultant,
+                        "상담건수": cons_count,
+                        "확정건수": cons_confirmed,
+                        "미확정건수": cons_unconfirmed,
+                        "동의율(%)": f"{cons_rate:.1f}",
+                        "확정매출": f"{cons_confirmed_amount:,}",
+                        "미확정매출": f"{cons_unconfirmed_amount:,}"
+                    })
                 
                 consultant_df = pd.DataFrame(consultant_stats)
                 st.dataframe(consultant_df, use_container_width=True, hide_index=True)
@@ -394,7 +400,7 @@ with tab3:
             
             # 분류별 통계
             category_stats = []
-            for category in filtered_df['분류'].unique():
+            for category in ["예약 신환", "미예약 신환", "예약 구환", "미예약 구환"]:
                 category_data = filtered_df[filtered_df['분류'] == category]
                 confirmed = len(category_data[category_data['상담결과'] == '확정'])
                 unconfirmed = len(category_data[category_data['상담결과'] == '미확정'])
@@ -406,33 +412,9 @@ with tab3:
                 })
             
             category_df = pd.DataFrame(category_stats)
-            
-            if not category_df.empty:
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.dataframe(category_df, use_container_width=True, hide_index=True)
-                
-                with col2:
-                    # 분류별 차트
-                    import matplotlib.pyplot as plt
-                    fig, ax = plt.subplots(figsize=(8, 6))
-                    x = range(len(category_df))
-                    width = 0.35
-                    
-                    ax.bar([i - width/2 for i in x], category_df['확정'], width, label='확정', color='#3498db')
-                    ax.bar([i + width/2 for i in x], category_df['미확정'], width, label='미확정', color='#e74c3c')
-                    
-                    ax.set_xlabel('분류', fontproperties='DejaVu Sans')
-                    ax.set_ylabel('건수', fontproperties='DejaVu Sans')
-                    ax.set_title('분류별 상담 현황', fontproperties='DejaVu Sans')
-                    ax.set_xticks(x)
-                    ax.set_xticklabels(category_df['분류'], fontproperties='DejaVu Sans')
-                    ax.legend(fontsize=10)
-                    ax.grid(axis='y', alpha=0.3)
-                    
-                    st.pyplot(fig)
+            st.dataframe(category_df, use_container_width=True, hide_index=True)
         else:
-            st.info(f"⚠️ 해당 기간에 {selected_consultant}의 상담 기록이 없습니다.")
+            st.info(f"⚠️ 해당 기간에 상담 기록이 없습니다.")
     else:
         st.info("📭 저장된 상담 기록이 없습니다.")
 
