@@ -169,10 +169,12 @@ with tab2:
     
     if search_type == "기간선택":
         st.subheader("📅 기간 선택")
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns([2, 2, 2])
         with col1:
-            start_date = st.date_input("시작일", datetime.now().date(), key="tab2_start")
+            consultant_filter = st.selectbox("👤 상담자", ["전체", "우다혜", "전누리", "임예린"], key="tab2_consultant")
         with col2:
+            start_date = st.date_input("시작일", datetime.now().date(), key="tab2_start")
+        with col3:
             end_date = st.date_input("종료일", datetime.now().date(), key="tab2_end")
         
         # 데이터 로드 및 필터링
@@ -185,6 +187,10 @@ with tab2:
             end_date_str = pd.to_datetime(end_date)
             
             filtered_df = df[(df['날짜'] >= start_date_str) & (df['날짜'] <= end_date_str)]
+            
+            # 상담자 필터링
+            if consultant_filter != "전체":
+                filtered_df = filtered_df[filtered_df['상담자'] == consultant_filter]
             
             if not filtered_df.empty:
                 st.success(f"✅ {len(filtered_df)}건의 상담 기록을 찾았습니다.")
