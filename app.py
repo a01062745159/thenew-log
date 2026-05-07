@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 from io import BytesIO
 import zipfile
+import gspread
+from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="더뉴치과 상담일지", layout="wide")
 
@@ -50,19 +52,39 @@ def filter_by_date_range(df, start_date, end_date):
     end_str = end_date.strftime("%Y-%m-%d")
     return df[(df['날짜'] >= start_str) & (df['날짜'] <= end_str)].copy()
 
-def load_gsheet_data(conn):
-    """Google Sheet에서 데이터 로드"""
+def load_gsheet_data():
+    """Google Sheet에서 데이터 로드 (gspread 사용)"""
     try:
-        df = conn.read()
+        # Streamlit secrets에서 credentials 로드
+        credentials = st.secrets["connections"]["gsheets"]
         
+        # Google Sheets API 인증
+        scopes = ["https://www.googleapis.com/auth/spreadsheets",
+                  "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(credentials, scopes=scopes)
+        client = gspread.authorize(creds)
+        
+        # Google Sheet 열기 (spreadsheet ID 사용)
+        spreadsheet_id = credentials["spreadsheet"]
+        spreadsheet = client.open_by_key(spreadsheet_id)
+        
+        # "상담일지" 시트 가져오기
+        worksheet = spreadsheet.worksheet("상담일지")
+        
+        # 데이터를 DataFrame으로 변환
+        data = worksheet.get_all_records()
+        df = pd.DataFrame(data)
+        
+        # 필수 컬럼 확인 및 추가
         df = df.dropna(subset=["환자성함"]).copy()
         if '진단원장' not in df.columns:
             df['진단원장'] = ''
         if '리콜상태' not in df.columns:
             df['리콜상태'] = '미리콜'
+        
         return df
     except Exception as e:
-        st.error(f"🚨 에러 원인: {e}")
+        st.error(f"🚨 Google Sheets 연결 에러: {str(e)}")
         return pd.DataFrame()
 
 def calculate_stats(df):
@@ -167,14 +189,13 @@ if not st.session_state.logged_in:
 # ===== 로그인 성공 후 앱 시작 =====
 st.title("📂 더뉴치과 상담일지")
 
-conn = st.connection("gsheets", type=GSheetsConnection)
 EXPECTED_COLS = ["날짜", "상담자", "진단원장", "환자성함", "차트번호", "분류", "상담결과", "금액", "주요포인트", "상담내용", "리콜상태"]
 COUNSELORS = ["우다혜", "전누리", "임예린"]
 DOCTORS = ["김동현 원장", "김언형 원장", "정성영 원장", "박경리 원장", "권영은 원장"]
 
 # 데이터 로드 (Session State 사용)
 if "df_cache" not in st.session_state:
-    st.session_state.df_cache = load_gsheet_data(conn)
+    st.session_state.df_cache = load_gsheet_data()
 
 df = st.session_state.df_cache
 
