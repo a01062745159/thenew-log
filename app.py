@@ -195,16 +195,33 @@ with tab2:
                 # 상담 내용 상세 표시
                 for idx, row in filtered_df.iterrows():
                     with st.expander(f"📌 {row['날짜'].strftime('%Y-%m-%d')} - {row['환자성함']} (차트: {row['차트번호']}) - {row['상담자']}", expanded=True):
+                        # 첫 번째 행: 분류 / 진단원장 / 차트번호
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             st.write(f"**분류:** {row['분류']}")
-                            st.write(f"**진단원장:** {row['진단원장']}")
                         with col2:
-                            st.write(f"**결과:** {row['상담결과']}")
-                            st.write(f"**금액:** {row['금액']}")
+                            st.write(f"**진단원장:** {row['진단원장']}")
                         with col3:
-                            st.write(f"**주요포인트:** {row['주요포인트']}")
+                            st.write(f"**차트번호:** {row['차트번호']}")
                         
+                        # 두 번째 행: 금액 / 상담결과 (색상)
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            try:
+                                amount = int(float(row['금액']))
+                                st.write(f"**금액:** {amount:,}원")
+                            except:
+                                st.write(f"**금액:** {row['금액']}")
+                        with col2:
+                            if row['상담결과'] == '확정':
+                                st.markdown(f"**상담결과:** <span style='color: blue; font-weight: bold;'>확정</span>", unsafe_allow_html=True)
+                            else:
+                                st.markdown(f"**상담결과:** <span style='color: red; font-weight: bold;'>미확정</span>", unsafe_allow_html=True)
+                        
+                        # 세 번째 행: 주요포인트
+                        st.write(f"**주요포인트:** {row['주요포인트']}")
+                        
+                        # 네 번째 행: 상담내용
                         st.write("---")
                         st.write(f"**상담내용:**\n\n{row['상담내용']}")
             else:
@@ -233,16 +250,33 @@ with tab2:
                 # 상담 내용 상세 표시
                 for idx, row in filtered_df.iterrows():
                     with st.expander(f"📌 {row['날짜']} - {row['환자성함']} (차트: {row['차트번호']}) - {row['상담자']}", expanded=True):
+                        # 첫 번째 행: 분류 / 진단원장 / 차트번호
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             st.write(f"**분류:** {row['분류']}")
-                            st.write(f"**진단원장:** {row['진단원장']}")
                         with col2:
-                            st.write(f"**결과:** {row['상담결과']}")
-                            st.write(f"**금액:** {row['금액']}")
+                            st.write(f"**진단원장:** {row['진단원장']}")
                         with col3:
-                            st.write(f"**주요포인트:** {row['주요포인트']}")
+                            st.write(f"**차트번호:** {row['차트번호']}")
                         
+                        # 두 번째 행: 금액 / 상담결과 (색상)
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            try:
+                                amount = int(float(row['금액']))
+                                st.write(f"**금액:** {amount:,}원")
+                            except:
+                                st.write(f"**금액:** {row['금액']}")
+                        with col2:
+                            if row['상담결과'] == '확정':
+                                st.markdown(f"**상담결과:** <span style='color: blue; font-weight: bold;'>확정</span>", unsafe_allow_html=True)
+                            else:
+                                st.markdown(f"**상담결과:** <span style='color: red; font-weight: bold;'>미확정</span>", unsafe_allow_html=True)
+                        
+                        # 세 번째 행: 주요포인트
+                        st.write(f"**주요포인트:** {row['주요포인트']}")
+                        
+                        # 네 번째 행: 상담내용
                         st.write("---")
                         st.write(f"**상담내용:**\n\n{row['상담내용']}")
             else:
