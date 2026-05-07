@@ -518,25 +518,15 @@ with tab4:
                 
                 # 상담 기록 표시
                 for idx, row in recall_df.iterrows():
-                    # 헤더: 환자명 / 차트 / 경과일 / 상담금액 / 확정여부 / 상담자
-                    col1, col2, col3, col4, col5, col6, col7 = st.columns([1.5, 1, 1, 1.2, 1, 1, 0.8])
+                    # expander 제목에 간단한 정보
+                    col1, col2 = st.columns([20, 1])
                     with col1:
-                        st.write(f"**{row['환자성함']}**")
+                        with st.expander(f"👤 {row['환자성함']} | 차트: {row['차트번호']} | {row['경과일']}일 경과 | {int(float(row['금액'])) if pd.notnull(row['금액']) else 0:,}원 | 미확정 | {row['상담자']}", expanded=False):
+                            # 상세 내용
+                            st.write(f"**주요포인트:** {row['주요포인트']}")
+                            st.write(f"**상담내용:** {row['상담내용']}")
+                    
                     with col2:
-                        st.write(f"{row['차트번호']}")
-                    with col3:
-                        st.write(f"**{row['경과일']}일**")
-                    with col4:
-                        try:
-                            amount = int(float(row['금액']))
-                            st.write(f"{amount:,}원")
-                        except:
-                            st.write(f"{row['금액']}")
-                    with col5:
-                        st.write("미확정")
-                    with col6:
-                        st.write(f"{row['상담자']}")
-                    with col7:
                         if st.button("✅ 리콜완료", key=f"recall_{idx}"):
                             st.session_state[f"recall_confirm_{idx}"] = True
                     
@@ -563,11 +553,6 @@ with tab4:
                                             break
                             except Exception as e:
                                 st.error(f"🚨 리콜 완료 중 에러: {str(e)}")
-                    
-                    # 주요포인트 / 상담내용
-                    st.write(f"**주요포인트:** {row['주요포인트']}")
-                    st.write(f"**상담내용:** {row['상담내용']}")
-                    st.divider()
             else:
                 st.success("✅ 리콜이 필요한 환자가 없습니다!")
         else:
