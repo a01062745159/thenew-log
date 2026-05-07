@@ -76,11 +76,11 @@ with tab1:
     # 첫 번째 행: 담당 상담자 / 진단 원장님 / 결과
     col1, col2, col3 = st.columns(3)
     with col1:
-        consultant = st.selectbox("👤 담당 상담자", ["우다혜", "전누리", "임예린"])
+        consultant = st.selectbox("👤 담당 상담자", ["선택하세요.", "우다혜", "전누리", "임예린"])
     with col2:
-        doctor = st.selectbox("🩺 진단 원장님", ["김동현 원장", "김언형 원장", "정성영 원장", "박경리 원장", "권영은 원장"])
+        doctor = st.selectbox("🩺 진단 원장님", ["선택하세요.", "김동현 원장", "김언형 원장", "정성영 원장", "박경리 원장", "권영은 원장"])
     with col3:
-        result = st.selectbox("✅ 결과", ["확정", "미확정"])
+        result = st.selectbox("✅ 결과", ["선택하세요.", "확정", "미확정"])
     
     # 두 번째 행: 분류 / 환자 성함 / 차트번호
     col1, col2, col3 = st.columns(3)
@@ -105,7 +105,14 @@ with tab1:
     
     # ===== 저장 버튼 =====
     if st.button("💾 저장하기", use_container_width=True):
-        if not patient_name:
+        # 필수 필드 검증
+        if consultant == "선택하세요.":
+            st.error("❌ 담당 상담자를 선택해주세요!")
+        elif doctor == "선택하세요.":
+            st.error("❌ 진단 원장님을 선택해주세요!")
+        elif result == "선택하세요.":
+            st.error("❌ 결과를 선택해주세요!")
+        elif not patient_name:
             st.error("❌ 환자성함을 입력해주세요!")
         elif not content:
             st.error("❌ 상담내용을 입력해주세요!")
